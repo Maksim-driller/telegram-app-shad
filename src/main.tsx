@@ -29,8 +29,23 @@ function Root() {
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {
-  throw new Error("Root element not found!");
+  console.error("Root element not found!");
+  document.body.innerHTML =
+    '<div style="padding: 20px; text-align: center; color: #f2f2f7; background: #0c0c0f;"><h1>Ошибка инициализации</h1><p>Элемент #root не найден</p></div>';
+} else {
+  try {
+    console.log("Initializing React app...");
+    createRoot(rootElement).render(<Root />);
+  } catch (error) {
+    console.error("Failed to render React app:", error);
+    rootElement.innerHTML = `
+      <div style="padding: 20px; text-align: center; color: #f2f2f7; background: #0c0c0f;">
+        <h1>Ошибка загрузки приложения</h1>
+        <p>Проверьте консоль браузера (F12) для деталей</p>
+        <pre style="text-align: left; margin-top: 20px; font-size: 12px; color: #a1a1aa;">${
+          error instanceof Error ? error.message : String(error)
+        }</pre>
+      </div>
+    `;
+  }
 }
-
-console.log("Initializing React app...");
-createRoot(rootElement).render(<Root />);

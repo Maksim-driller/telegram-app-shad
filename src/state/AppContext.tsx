@@ -99,6 +99,19 @@ const demoState: AppState = {
   },
 };
 
+// UUID generator fallback for environments without crypto.randomUUID
+function generateUUID(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback for older browsers
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 function loadState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -127,7 +140,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addStage: (title) =>
       setState((s) => ({
         ...s,
-        plan: { stages: [...s.plan.stages, { id: crypto.randomUUID(), title, tasks: [] }] },
+        plan: { stages: [...s.plan.stages, { id: generateUUID(), title, tasks: [] }] },
       })),
     removeStage: (stageId) =>
       setState((s) => ({
@@ -147,7 +160,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                     ((): Task => {
                       if (payload.type === 'chapter') {
                         return {
-                          id: crypto.randomUUID(),
+                          id: generateUUID(),
                           type: 'chapter',
                           title: payload.title,
                           pagesTotal: Math.max(1, Math.floor(payload.pagesTotal)),
@@ -157,7 +170,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                       }
                       if (payload.type === 'video') {
                         return {
-                          id: crypto.randomUUID(),
+                          id: generateUUID(),
                           type: 'video',
                           title: payload.title,
                           url: payload.url,
@@ -165,7 +178,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
                         };
                       }
                       return {
-                        id: crypto.randomUUID(),
+                        id: generateUUID(),
                         type: 'problem',
                         title: payload.title,
                         completed: false,
@@ -236,7 +249,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         motivation: {
           ...s.motivation,
           diary: [
-            { id: crypto.randomUUID(), date: new Date().toISOString(), hours, text },
+            { id: generateUUID(), date: new Date().toISOString(), hours, text },
             ...s.motivation.diary,
           ],
         },

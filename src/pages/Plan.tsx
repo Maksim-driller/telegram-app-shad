@@ -13,8 +13,17 @@ export default function Plan() {
     completed: boolean
   ) => {
     actions.toggleTask(stageId, taskId, completed);
-    if (completed)
-      confetti({ scalar: 0.6, ticks: 120, spread: 70, startVelocity: 25 });
+    if (completed) {
+      try {
+        // Check if canvas-confetti is available and works
+        if (typeof confetti === "function") {
+          confetti({ scalar: 0.6, ticks: 120, spread: 70, startVelocity: 25 });
+        }
+      } catch (error) {
+        // Silently fail if confetti doesn't work (e.g., in Telegram WebView)
+        console.warn("Confetti animation failed:", error);
+      }
+    }
   };
 
   const addStage = () => {
@@ -29,7 +38,7 @@ export default function Plan() {
     <div>
       <h1 className="h1">Учебный план</h1>
 
-      <div className="card" style={{ display: 'flex', gap: 8 }}>
+      <div className="card" style={{ display: "flex", gap: 8 }}>
         <input
           className="input"
           placeholder="Новый этап (например, ТА/Матан)"
@@ -41,16 +50,31 @@ export default function Plan() {
         </button>
       </div>
 
-      <div style={{ display: 'grid', gap: 12, marginTop: 12 }}>
+      <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
         {state.plan.stages.map((stage) => (
           <div key={stage.id} className="card">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 8,
+              }}
+            >
               <div style={{ fontWeight: 600 }}>{stage.title}</div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary" style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => setOpenForStage(stage.id)}>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  className="btn btn-primary"
+                  style={{ padding: "6px 10px", fontSize: 12 }}
+                  onClick={() => setOpenForStage(stage.id)}
+                >
                   Добавить задачу
                 </button>
-                <button className="btn btn-danger" style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => actions.removeStage(stage.id)}>
+                <button
+                  className="btn btn-danger"
+                  style={{ padding: "6px 10px", fontSize: 12 }}
+                  onClick={() => actions.removeStage(stage.id)}
+                >
                   Удалить
                 </button>
               </div>
@@ -67,23 +91,44 @@ export default function Plan() {
                   />
                   <span className="grow" style={{ fontSize: 14 }}>
                     {task.title}
-                    {task.type === 'chapter' && (
-                      <span className="label-muted"> — {task.pagesDone}/{task.pagesTotal} стр.</span>
+                    {task.type === "chapter" && (
+                      <span className="label-muted">
+                        {" "}
+                        — {task.pagesDone}/{task.pagesTotal} стр.
+                      </span>
                     )}
-                    {task.type === 'video' && task.url && (
-                      <a href={task.url} target="_blank" rel="noopener noreferrer" className="label-muted" style={{ marginLeft: 6 }}>ссылка</a>
+                    {task.type === "video" && task.url && (
+                      <a
+                        href={task.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="label-muted"
+                        style={{ marginLeft: 6 }}
+                      >
+                        ссылка
+                      </a>
                     )}
                   </span>
-                  {task.type === 'chapter' && (
+                  {task.type === "chapter" && (
                     <input
                       className="input"
                       style={{ width: 90 }}
                       inputMode="numeric"
                       value={task.pagesDone}
-                      onChange={(e) => actions.updateChapterProgress(stage.id, task.id, Math.max(0, Number(e.target.value) || 0))}
+                      onChange={(e) =>
+                        actions.updateChapterProgress(
+                          stage.id,
+                          task.id,
+                          Math.max(0, Number(e.target.value) || 0)
+                        )
+                      }
                     />
                   )}
-                  <button className="btn btn-danger" style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => actions.removeTask(stage.id, task.id)}>
+                  <button
+                    className="btn btn-danger"
+                    style={{ padding: "6px 10px", fontSize: 12 }}
+                    onClick={() => actions.removeTask(stage.id, task.id)}
+                  >
                     Удалить
                   </button>
                 </label>
@@ -152,8 +197,17 @@ function TaskModal({
     let payload: NewTaskPayload | null = null;
     if (type === "problem") payload = { type: "problem", title: title.trim() };
     if (type === "chapter")
-      payload = { type: "chapter", title: `Глава ${chapter.trim()}`, pagesTotal: Math.max(1, Number(pages) || 1) };
-    if (type === "video") payload = { type: "video", title: videoTitle.trim(), url: videoUrl.trim() };
+      payload = {
+        type: "chapter",
+        title: `Глава ${chapter.trim()}`,
+        pagesTotal: Math.max(1, Number(pages) || 1),
+      };
+    if (type === "video")
+      payload = {
+        type: "video",
+        title: videoTitle.trim(),
+        url: videoUrl.trim(),
+      };
     if (!payload) return;
     onSubmit(payload);
     onClose();
@@ -167,25 +221,55 @@ function TaskModal({
 
   return (
     <Modal open={open} onClose={onClose} title="Новая задача">
-      <div style={{ display: 'grid', gap: 12 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+      <div style={{ display: "grid", gap: 12 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 8,
+          }}
+        >
           <button
             className="btn btn-outline"
-            style={ type === 'problem' ? { background: 'var(--primary)', color: '#fff', borderColor: 'var(--primary)'} : {} }
+            style={
+              type === "problem"
+                ? {
+                    background: "var(--primary)",
+                    color: "#fff",
+                    borderColor: "var(--primary)",
+                  }
+                : {}
+            }
             onClick={() => setType("problem")}
           >
             Задача
           </button>
           <button
             className="btn btn-outline"
-            style={ type === 'chapter' ? { background: 'var(--primary)', color: '#fff', borderColor: 'var(--primary)'} : {} }
+            style={
+              type === "chapter"
+                ? {
+                    background: "var(--primary)",
+                    color: "#fff",
+                    borderColor: "var(--primary)",
+                  }
+                : {}
+            }
             onClick={() => setType("chapter")}
           >
             Глава
           </button>
           <button
             className="btn btn-outline"
-            style={ type === 'video' ? { background: 'var(--primary)', color: '#fff', borderColor: 'var(--primary)'} : {} }
+            style={
+              type === "video"
+                ? {
+                    background: "var(--primary)",
+                    color: "#fff",
+                    borderColor: "var(--primary)",
+                  }
+                : {}
+            }
             onClick={() => setType("video")}
           >
             Видео
@@ -193,7 +277,7 @@ function TaskModal({
         </div>
 
         {type === "problem" && (
-          <div style={{ display: 'grid', gap: 8 }}>
+          <div style={{ display: "grid", gap: 8 }}>
             <label className="label-muted">Описание</label>
             <input
               className="input"
@@ -204,8 +288,8 @@ function TaskModal({
           </div>
         )}
         {type === "chapter" && (
-          <div style={{ display: 'grid', gap: 8 }}>
-            <div style={{ display: 'grid', gap: 6 }}>
+          <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ display: "grid", gap: 6 }}>
               <label className="label-muted">Глава</label>
               <input
                 className="input"
@@ -214,7 +298,7 @@ function TaskModal({
                 onChange={(e) => setChapter(e.target.value)}
               />
             </div>
-            <div style={{ display: 'grid', gap: 6 }}>
+            <div style={{ display: "grid", gap: 6 }}>
               <label className="label-muted">Страниц</label>
               <input
                 className="input"
@@ -227,8 +311,8 @@ function TaskModal({
           </div>
         )}
         {type === "video" && (
-          <div style={{ display: 'grid', gap: 8 }}>
-            <div style={{ display: 'grid', gap: 6 }}>
+          <div style={{ display: "grid", gap: 8 }}>
+            <div style={{ display: "grid", gap: 6 }}>
               <label className="label-muted">Название</label>
               <input
                 className="input"
@@ -237,7 +321,7 @@ function TaskModal({
                 onChange={(e) => setVideoTitle(e.target.value)}
               />
             </div>
-            <div style={{ display: 'grid', gap: 6 }}>
+            <div style={{ display: "grid", gap: 6 }}>
               <label className="label-muted">Ссылка</label>
               <input
                 className="input"
@@ -249,9 +333,22 @@ function TaskModal({
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: 8, paddingTop: 8 }}>
-          <button className="btn btn-outline" style={{ flex: 1 }} onClick={onClose}>Отмена</button>
-          <button className="btn btn-primary" style={{ flex: 1, opacity: canSubmit ? 1 : .6 }} disabled={!canSubmit} onClick={handleSubmit}>Добавить</button>
+        <div style={{ display: "flex", gap: 8, paddingTop: 8 }}>
+          <button
+            className="btn btn-outline"
+            style={{ flex: 1 }}
+            onClick={onClose}
+          >
+            Отмена
+          </button>
+          <button
+            className="btn btn-primary"
+            style={{ flex: 1, opacity: canSubmit ? 1 : 0.6 }}
+            disabled={!canSubmit}
+            onClick={handleSubmit}
+          >
+            Добавить
+          </button>
         </div>
       </div>
     </Modal>
