@@ -1,5 +1,15 @@
 # Инструкция по деплою
 
+## Деплой на Vercel
+
+Проект настроен для автоматического деплоя на Vercel через `vercel.json`:
+
+- Output Directory: `dist` (Vite собирает в dist, а не build)
+- Framework: Vite
+- SPA роутинг настроен через rewrites
+
+Просто подключи репозиторий к Vercel - он автоматически определит настройки из `vercel.json`.
+
 ## Multi-stage Dockerfile
 
 Проект использует multi-stage Dockerfile, который автоматически собирает приложение внутри контейнера. Это позволяет деплоить на любые платформы (Railway, Render, Fly.io и т.д.) без предварительной локальной сборки.
@@ -7,6 +17,7 @@
 ## Автоматический деплой
 
 Dockerfile состоит из двух стадий:
+
 1. **Builder stage** - собирает приложение (node:22-slim)
 2. **Production stage** - сервит статические файлы через nginx (nginx:alpine)
 
