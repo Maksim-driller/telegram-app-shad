@@ -1,7 +1,8 @@
 import dayjs from "dayjs";
-import { useMemo, useState } from "react";
-import { Bar, BarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { lazy, Suspense, useMemo, useState } from "react";
 import { useAppState } from "../state/AppContext";
+
+const Chart = lazy(() => import('../components/WeeklyChart'));
 
 export default function Diary() {
   const { state, actions } = useAppState();
@@ -58,16 +59,9 @@ export default function Diary() {
 
       <div className="card" style={{ marginTop: 12 }}>
         <div className="label-muted" style={{ marginBottom: 6 }}>Часы за 7 дней</div>
-        <div style={{ width: '100%', height: 160 }}>
-          <ResponsiveContainer>
-            <BarChart data={weeklyData} margin={{ left: -18, right: 0, top: 10 }}>
-              <XAxis dataKey="label" tick={{ fill: 'var(--muted)', fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis hide domain={[0, 'dataMax + 1']} />
-              <Tooltip contentStyle={{ background: 'var(--card)', border: '1px solid var(--card-stroke)' }} />
-              <Bar dataKey="hours" fill="var(--primary)" radius={[6,6,0,0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <Suspense fallback={<div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)' }}>Загрузка...</div>}>
+          <Chart data={weeklyData} />
+        </Suspense>
       </div>
 
       <div style={{ display: "grid", gap: 12, marginTop: 12 }}>
