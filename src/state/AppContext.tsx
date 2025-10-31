@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 type TaskBase = {
   id: string;
@@ -9,17 +9,17 @@ type TaskBase = {
 };
 
 type TaskProblem = TaskBase & {
-  type: 'problem';
+  type: "problem";
 };
 
 type TaskChapter = TaskBase & {
-  type: 'chapter';
+  type: "chapter";
   pagesTotal: number;
   pagesDone: number;
 };
 
 type TaskVideo = TaskBase & {
-  type: 'video';
+  type: "video";
   url?: string;
 };
 
@@ -29,6 +29,7 @@ type Stage = {
   id: string;
   title: string;
   tasks: Task[];
+  deadline?: string; // ISO date string
 };
 
 type DiaryEntry = {
@@ -63,33 +64,43 @@ type AppState = {
 type AppActions = {
   addStage: (title: string) => void;
   removeStage: (stageId: string) => void;
+  setStageDeadline: (stageId: string, deadline: string | undefined) => void;
   addTask: (
     stageId: string,
     task:
-      | { type: 'problem'; title: string }
-      | { type: 'chapter'; title: string; pagesTotal: number }
-      | { type: 'video'; title: string; url?: string }
+      | { type: "problem"; title: string }
+      | { type: "chapter"; title: string; pagesTotal: number }
+      | { type: "video"; title: string; url?: string }
   ) => void;
   removeTask: (stageId: string, taskId: string) => void;
   toggleTask: (stageId: string, taskId: string, completed: boolean) => void;
-  updateChapterProgress: (stageId: string, taskId: string, pagesDone: number) => void;
+  updateChapterProgress: (
+    stageId: string,
+    taskId: string,
+    pagesDone: number
+  ) => void;
   setQuote: (q: string) => void;
   addDiaryEntry: (payload: { hours: number; text: string }) => void;
   resetAll: () => void;
+  exportData: () => void;
+  importData: (data: AppState) => void;
 };
 
-const AppContext = createContext<{ state: AppState; actions: AppActions } | null>(null);
+const AppContext = createContext<{
+  state: AppState;
+  actions: AppActions;
+} | null>(null);
 
-const STORAGE_KEY = 'shad-prep-app-state-v2';
+const STORAGE_KEY = "shad-prep-app-state-v2";
 
 const demoState: AppState = {
   plan: {
     stages: [],
   },
   motivation: {
-    quote: 'ШАД — это инвестиция в себя. Продолжай!',
+    quote: "ШАД — это инвестиция в себя. Продолжай!",
     diary: [],
-    why: '',
+    why: "",
   },
   stats: {
     totalTasks: 0,
@@ -101,13 +112,13 @@ const demoState: AppState = {
 
 // UUID generator fallback for environments without crypto.randomUUID
 function generateUUID(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
     return crypto.randomUUID();
   }
   // Fallback for older browsers
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }
@@ -136,134 +147,229 @@ export function AppProvider({ children }: { children: ReactNode }) {
     saveState(state);
   }, [state]);
 
-  const actions = useMemo<AppActions>(() => ({
-    addStage: (title) =>
-      setState((s) => ({
-        ...s,
-        plan: { stages: [...s.plan.stages, { id: generateUUID(), title, tasks: [] }] },
-      })),
-    removeStage: (stageId) =>
-      setState((s) => ({
-        ...s,
-        plan: { stages: s.plan.stages.filter((st) => st.id !== stageId) },
-      })),
-    addTask: (stageId, payload) =>
-      setState((s) => ({
-        ...s,
-        plan: {
-          stages: s.plan.stages.map((st) =>
+  const actions = useMemo<AppActions>(
+    () => ({
+      addStage: (title) =>
+        setState((s) => ({
+          ...s,
+          plan: {
+            stages: [
+              ...s.plan.stages,
+              { id: generateUUID(), title, tasks: [] },
+            ],
+          },
+        })),
+      removeStage: (stageId) =>
+        setState((s) => ({
+          ...s,
+          plan: { stages: s.plan.stages.filter((st) => st.id !== stageId) },
+        })),
+      setStageDeadline: (stageId, deadline) =>
+        setState((s) => ({
+          ...s,
+          plan: {
+            stages: s.plan.stages.map((st) =>
+              st.id === stageId ? { ...st, deadline } : st
+            ),
+          },
+        })),
+      addTask: (stageId, payload) =>
+        setState((s) => ({
+          ...s,
+          plan: {
+            stages: s.plan.stages.map((st) =>
+              st.id === stageId
+                ? {
+                    ...st,
+                    tasks: [
+                      ...st.tasks,
+                      ((): Task => {
+                        if (payload.type === "chapter") {
+                          return {
+                            id: generateUUID(),
+                            type: "chapter",
+                            title: payload.title,
+                            pagesTotal: Math.max(
+                              1,
+                              Math.floor(payload.pagesTotal)
+                            ),
+                            pagesDone: 0,
+                            completed: false,
+                          };
+                        }
+                        if (payload.type === "video") {
+                          return {
+                            id: generateUUID(),
+                            type: "video",
+                            title: payload.title,
+                            url: payload.url,
+                            completed: false,
+                          };
+                        }
+                        return {
+                          id: generateUUID(),
+                          type: "problem",
+                          title: payload.title,
+                          completed: false,
+                        };
+                      })(),
+                    ],
+                  }
+                : st
+            ),
+          },
+        })),
+      removeTask: (stageId, taskId) =>
+        setState((s) => ({
+          ...s,
+          plan: {
+            stages: s.plan.stages.map((st) =>
+              st.id === stageId
+                ? { ...st, tasks: st.tasks.filter((t) => t.id !== taskId) }
+                : st
+            ),
+          },
+        })),
+      toggleTask: (stageId, taskId, completed) =>
+        setState((s) => {
+          const nextStages = s.plan.stages.map((st) =>
             st.id === stageId
               ? {
                   ...st,
-                  tasks: [
-                    ...st.tasks,
-                    ((): Task => {
-                      if (payload.type === 'chapter') {
-                        return {
-                          id: generateUUID(),
-                          type: 'chapter',
-                          title: payload.title,
-                          pagesTotal: Math.max(1, Math.floor(payload.pagesTotal)),
-                          pagesDone: 0,
-                          completed: false,
-                        };
-                      }
-                      if (payload.type === 'video') {
-                        return {
-                          id: generateUUID(),
-                          type: 'video',
-                          title: payload.title,
-                          url: payload.url,
-                          completed: false,
-                        };
-                      }
-                      return {
-                        id: generateUUID(),
-                        type: 'problem',
-                        title: payload.title,
-                        completed: false,
-                      };
-                    })(),
-                  ],
-                }
-              : st,
-          ),
-        },
-      })),
-    removeTask: (stageId, taskId) =>
-      setState((s) => ({
-        ...s,
-        plan: {
-          stages: s.plan.stages.map((st) =>
-            st.id === stageId ? { ...st, tasks: st.tasks.filter((t) => t.id !== taskId) } : st,
-          ),
-        },
-      })),
-    toggleTask: (stageId, taskId, completed) =>
-      setState((s) => {
-        const nextStages = s.plan.stages.map((st) =>
-          st.id === stageId
-            ? {
-                ...st,
-                tasks: st.tasks.map((t) => (t.id === taskId ? { ...t, completed, completedAt: completed ? new Date().toISOString() : undefined } : t)),
-              }
-            : st,
-        );
-        const solved = nextStages.reduce(
-          (acc, st) => acc + st.tasks.filter((t) => t.completed).length,
-          0,
-        );
-        const streakDays = computeStreakDays(s.motivation.diary, nextStages);
-        return { ...s, plan: { stages: nextStages }, stats: { ...s.stats, solvedTasks: solved, streakDays } };
-      }),
-    updateChapterProgress: (stageId, taskId, pagesDone) =>
-      setState((s) => {
-        const next = s.plan.stages.map((st) =>
-          st.id === stageId
-            ? {
-                ...st,
-                tasks: st.tasks.map((t) =>
-                  t.id === taskId && t.type === 'chapter'
-                    ? {
-                        ...t,
-                        pagesDone: Math.max(0, Math.min(pagesDone, t.pagesTotal)),
-                        completed: Math.max(0, Math.min(pagesDone, t.pagesTotal)) >= t.pagesTotal,
-                        completedAt:
-                          Math.max(0, Math.min(pagesDone, t.pagesTotal)) >= t.pagesTotal
+                  tasks: st.tasks.map((t) =>
+                    t.id === taskId
+                      ? {
+                          ...t,
+                          completed,
+                          completedAt: completed
                             ? new Date().toISOString()
-                            : t.completedAt,
-                      }
-                    : t,
-                ),
-              }
-            : st,
-        );
-        const solved = next.reduce((acc, st) => acc + st.tasks.filter((t) => t.completed).length, 0);
-        const streakDays = computeStreakDays(s.motivation.diary, next);
-        return { ...s, plan: { stages: next }, stats: { ...s.stats, solvedTasks: solved, streakDays } };
-      }),
-    setQuote: (q) => setState((s) => ({ ...s, motivation: { ...s.motivation, quote: q } })),
-    addDiaryEntry: ({ hours, text }) =>
-      setState((s) => ({
-        ...s,
-        motivation: {
-          ...s.motivation,
-          diary: [
-            { id: generateUUID(), date: new Date().toISOString(), hours, text },
-            ...s.motivation.diary,
-          ],
-        },
-        stats: { ...s.stats, totalHours: s.stats.totalHours + hours, streakDays: computeStreakDays([{ id: 'tmp', date: new Date().toISOString(), hours, text }, ...s.motivation.diary], s.plan.stages) },
-      })),
-    resetAll: () => setState(demoState),
-  }), []);
+                            : undefined,
+                        }
+                      : t
+                  ),
+                }
+              : st
+          );
+          const solved = nextStages.reduce(
+            (acc, st) => acc + st.tasks.filter((t) => t.completed).length,
+            0
+          );
+          const streakDays = computeStreakDays(s.motivation.diary, nextStages);
+          return {
+            ...s,
+            plan: { stages: nextStages },
+            stats: { ...s.stats, solvedTasks: solved, streakDays },
+          };
+        }),
+      updateChapterProgress: (stageId, taskId, pagesDone) =>
+        setState((s) => {
+          const next = s.plan.stages.map((st) =>
+            st.id === stageId
+              ? {
+                  ...st,
+                  tasks: st.tasks.map((t) =>
+                    t.id === taskId && t.type === "chapter"
+                      ? {
+                          ...t,
+                          pagesDone: Math.max(
+                            0,
+                            Math.min(pagesDone, t.pagesTotal)
+                          ),
+                          completed:
+                            Math.max(0, Math.min(pagesDone, t.pagesTotal)) >=
+                            t.pagesTotal,
+                          completedAt:
+                            Math.max(0, Math.min(pagesDone, t.pagesTotal)) >=
+                            t.pagesTotal
+                              ? new Date().toISOString()
+                              : t.completedAt,
+                        }
+                      : t
+                  ),
+                }
+              : st
+          );
+          const solved = next.reduce(
+            (acc, st) => acc + st.tasks.filter((t) => t.completed).length,
+            0
+          );
+          const streakDays = computeStreakDays(s.motivation.diary, next);
+          return {
+            ...s,
+            plan: { stages: next },
+            stats: { ...s.stats, solvedTasks: solved, streakDays },
+          };
+        }),
+      setQuote: (q) =>
+        setState((s) => ({ ...s, motivation: { ...s.motivation, quote: q } })),
+      addDiaryEntry: ({ hours, text }) =>
+        setState((s) => ({
+          ...s,
+          motivation: {
+            ...s.motivation,
+            diary: [
+              {
+                id: generateUUID(),
+                date: new Date().toISOString(),
+                hours,
+                text,
+              },
+              ...s.motivation.diary,
+            ],
+          },
+          stats: {
+            ...s.stats,
+            totalHours: s.stats.totalHours + hours,
+            streakDays: computeStreakDays(
+              [
+                { id: "tmp", date: new Date().toISOString(), hours, text },
+                ...s.motivation.diary,
+              ],
+              s.plan.stages
+            ),
+          },
+        })),
+      resetAll: () => setState(demoState),
+      exportData: () => {
+        setState((currentState) => {
+          const dataStr = JSON.stringify(currentState, null, 2);
+          const dataBlob = new Blob([dataStr], { type: "application/json" });
+          const url = URL.createObjectURL(dataBlob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = `shad-backup-${
+            new Date().toISOString().split("T")[0]
+          }.json`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          return currentState;
+        });
+      },
+      importData: (data: AppState) => {
+        try {
+          setState(data);
+          saveState(data);
+        } catch (error) {
+          console.error("Failed to import data:", error);
+          throw error;
+        }
+      },
+    }),
+    []
+  );
 
-  return <AppContext.Provider value={{ state, actions }}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider value={{ state, actions }}>
+      {children}
+    </AppContext.Provider>
+  );
 }
 
 export function useAppState() {
   const ctx = useContext(AppContext);
-  if (!ctx) throw new Error('useAppState must be used within AppProvider');
+  if (!ctx) throw new Error("useAppState must be used within AppProvider");
   return ctx;
 }
 
@@ -274,16 +380,19 @@ function computeStreakDays(diary: DiaryEntry[], stages: Stage[]): number {
   stages.forEach((st) =>
     st.tasks.forEach((t) => {
       if (t.completedAt) dates.add(new Date(t.completedAt).toDateString());
-    }),
+    })
   );
   // Count consecutive days ending today
   let count = 0;
   const today = new Date();
   for (;;) {
-    const key = new Date(today.getFullYear(), today.getMonth(), today.getDate() - count).toDateString();
-    if (dates.has(key)) count += 1; else break;
+    const key = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() - count
+    ).toDateString();
+    if (dates.has(key)) count += 1;
+    else break;
   }
   return count;
 }
-
-
