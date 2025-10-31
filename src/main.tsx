@@ -9,7 +9,10 @@ import { initTMA } from "./tma/initTMA";
 
 function Root() {
   useEffect(() => {
-    initTMA();
+    console.log("Root component mounted, initializing TMA...");
+    initTMA().catch((err) => {
+      console.error("Failed to initialize TMA:", err);
+    });
   }, []);
   return (
     <StrictMode>
@@ -24,4 +27,10 @@ function Root() {
   );
 }
 
-createRoot(document.getElementById("root")!).render(<Root />);
+const rootElement = document.getElementById("root");
+if (!rootElement) {
+  throw new Error("Root element not found!");
+}
+
+console.log("Initializing React app...");
+createRoot(rootElement).render(<Root />);
