@@ -1,8 +1,29 @@
 # Use this Dockerfile if you build locally: npm run build first
 FROM nginx:alpine
-RUN rm -rf /usr/share/nginx/html/* /var/cache/apk/* /tmp/*
+
+# Remove unnecessary files to minimize image size
+RUN rm -rf /usr/share/nginx/html/* \
+    /var/cache/apk/* \
+    /tmp/* \
+    /etc/nginx/conf.d/default.conf \
+    /usr/share/man \
+    /usr/share/doc \
+    /root/.cache \
+    /var/lib/apk/* \
+    /usr/libexec \
+    /usr/bin/gcc \
+    /usr/bin/g++ \
+    /usr/bin/cpp \
+    /usr/lib/gcc \
+    /lib/apk \
+    /sbin/apk \
+    /usr/sbin/apk || true
+
+# Copy only the built static files
 COPY dist /usr/share/nginx/html
-RUN echo 'server { listen 80; root /usr/share/nginx/html; index index.html; location / { try_files $uri /index.html; } }' > /etc/nginx/conf.d/default.conf
+
+# Create minimal nginx config with gzip compression
+RUN echo 'server{listen 80;root /usr/share/nginx/html;index index.html;location /{try_files $uri /index.html;}gzip on;gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;gzip_min_length 1000;gzip_comp_level 6;}' > /etc/nginx/conf.d/default.conf
+
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
-
