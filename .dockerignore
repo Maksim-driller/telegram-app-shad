@@ -4,7 +4,6 @@ node_modules
 *.log
 .vscode
 .idea
-dist
 .env
 .env.local
 .env.*.local
@@ -20,3 +19,4 @@ README.md
 eslint.config.js
 public/vite.svg
 src/App.css
+# Note: dist is NOT ignored because builder stage needs source files
