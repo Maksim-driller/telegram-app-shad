@@ -1,16 +1,67 @@
-import type { ReactNode } from 'react';
+import type { ReactNode } from "react";
 
-export function Modal({ open, onClose, children, title }: { open: boolean; onClose: () => void; children: ReactNode; title?: string }) {
+export function Modal({
+  open,
+  onClose,
+  children,
+  title,
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: ReactNode;
+  title?: string;
+}) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
-      <div className="relative w-full sm:max-w-md sm:rounded-xl sm:overflow-hidden bg-white dark:bg-neutral-900 border-t sm:border border-gray-200 dark:border-neutral-800 p-4 sm:p-5 shadow-xl">
-        {title ? <div className="text-base font-semibold mb-3">{title}</div> : null}
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 50,
+        display: "flex",
+        alignItems: "flex-end",
+        justifyContent: "center",
+        padding: "16px",
+      }}
+    >
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.4)",
+        }}
+        onClick={onClose}
+      />
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          maxWidth: "420px",
+          backgroundColor: "var(--card)",
+          border: "1px solid var(--card-stroke)",
+          borderTopLeftRadius: "var(--radius)",
+          borderTopRightRadius: "var(--radius)",
+          padding: "20px",
+          boxShadow: "var(--shadow)",
+          maxHeight: "90vh",
+          overflowY: "auto",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {title ? (
+          <div
+            style={{
+              fontSize: "16px",
+              fontWeight: 600,
+              marginBottom: "12px",
+              color: "var(--text)",
+            }}
+          >
+            {title}
+          </div>
+        ) : null}
         {children}
       </div>
     </div>
   );
 }
-
-

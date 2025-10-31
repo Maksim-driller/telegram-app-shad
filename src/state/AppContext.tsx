@@ -81,6 +81,11 @@ type AppActions = {
   ) => void;
   setQuote: (q: string) => void;
   addDiaryEntry: (payload: { hours: number; text: string }) => void;
+  updateDiaryEntry: (
+    entryId: string,
+    payload: { hours: number; text: string }
+  ) => void;
+  removeDiaryEntry: (entryId: string) => void;
   resetAll: () => void;
   exportData: () => void;
   importData: (data: AppState) => void;
@@ -303,32 +308,74 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setQuote: (q) =>
         setState((s) => ({ ...s, motivation: { ...s.motivation, quote: q } })),
       addDiaryEntry: ({ hours, text }) =>
-        setState((s) => ({
-          ...s,
-          motivation: {
-            ...s.motivation,
-            diary: [
-              {
-                id: generateUUID(),
-                date: new Date().toISOString(),
-                hours,
-                text,
-              },
-              ...s.motivation.diary,
-            ],
-          },
-          stats: {
-            ...s.stats,
-            totalHours: s.stats.totalHours + hours,
-            streakDays: computeStreakDays(
-              [
-                { id: "tmp", date: new Date().toISOString(), hours, text },
-                ...s.motivation.diary,
-              ],
-              s.plan.stages
-            ),
-          },
-        })),
+        setState((s) => {
+          const newEntry = {
+            id: generateUUID(),
+            date: new Date().toISOString(),
+            hours,
+            text,
+          };
+          return {
+            ...s,
+            motivation: {
+              ...s.motivation,
+              diary: [newEntry, ...s.motivation.diary],
+            },
+            stats: {
+              ...s.stats,
+              totalHours: s.stats.totalHours + hours,
+              streakDays: computeStreakDays(
+                [newEntry, ...s.motivation.diary],
+                s.plan.stages
+              ),
+            },
+          };
+        }),
+      updateDiaryEntry: (entryId, { hours, text }) =>
+        setState((s) => {
+          const entry = s.motivation.diary.find((e) => e.id === entryId);
+          if (!entry) return s;
+
+          const hoursDiff = hours - entry.hours;
+          const updatedDiary = s.motivation.diary.map((e) =>
+            e.id === entryId ? { ...e, hours, text } : e
+          );
+
+          return {
+            ...s,
+            motivation: {
+              ...s.motivation,
+              diary: updatedDiary,
+            },
+            stats: {
+              ...s.stats,
+              totalHours: s.stats.totalHours + hoursDiff,
+              streakDays: computeStreakDays(updatedDiary, s.plan.stages),
+            },
+          };
+        }),
+      removeDiaryEntry: (entryId) =>
+        setState((s) => {
+          const entry = s.motivation.diary.find((e) => e.id === entryId);
+          if (!entry) return s;
+
+          const updatedDiary = s.motivation.diary.filter(
+            (e) => e.id !== entryId
+          );
+
+          return {
+            ...s,
+            motivation: {
+              ...s.motivation,
+              diary: updatedDiary,
+            },
+            stats: {
+              ...s.stats,
+              totalHours: Math.max(0, s.stats.totalHours - entry.hours),
+              streakDays: computeStreakDays(updatedDiary, s.plan.stages),
+            },
+          };
+        }),
       resetAll: () => setState(demoState),
       exportData: () => {
         setState((currentState) => {
