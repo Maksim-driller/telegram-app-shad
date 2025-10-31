@@ -4,15 +4,18 @@ import { useAppState } from "../state/AppContext";
 export default function Dashboard() {
   const { state } = useAppState();
 
-  const overallProgress = useMemo(() => {
+  const { overallProgress, totalTasks, solvedTasks } = useMemo(() => {
     const { stages } = state.plan;
-    if (stages.length === 0) return 0;
     const total = stages.reduce((acc, s) => acc + s.tasks.length, 0);
     const done = stages.reduce(
       (acc, s) => acc + s.tasks.filter((t) => t.completed).length,
       0
     );
-    return total === 0 ? 0 : Math.round((done / total) * 100);
+    return {
+      overallProgress: total === 0 ? 0 : Math.round((done / total) * 100),
+      totalTasks: total,
+      solvedTasks: done,
+    };
   }, [state.plan]);
 
   return (
@@ -38,11 +41,8 @@ export default function Dashboard() {
       </div>
 
       <div className="grid-2" style={{ marginTop: 12 }}>
-        <StatCard
-          title="Всего задач"
-          value={state.stats.totalTasks.toString()}
-        />
-        <StatCard title="Решено" value={state.stats.solvedTasks.toString()} />
+        <StatCard title="Всего задач" value={totalTasks.toString()} />
+        <StatCard title="Решено" value={solvedTasks.toString()} />
         <StatCard title="Часы" value={state.stats.totalHours.toString()} />
         <StatCard title="Серия" value={`${state.stats.streakDays} дн.`} />
       </div>

@@ -84,23 +84,7 @@ const STORAGE_KEY = 'shad-prep-app-state-v2';
 
 const demoState: AppState = {
   plan: {
-    stages: [
-      {
-        id: crypto.randomUUID(),
-        title: 'Математический анализ',
-        tasks: [
-          { id: crypto.randomUUID(), title: 'Прочитать главу 1', type: 'chapter', pagesTotal: 50, pagesDone: 0, completed: false },
-          { id: crypto.randomUUID(), title: 'Решить задачи 1-10', type: 'problem', completed: false },
-        ],
-      },
-      {
-        id: crypto.randomUUID(),
-        title: 'Алгоритмы',
-        tasks: [
-          { id: crypto.randomUUID(), title: 'Лекция: сортировки', type: 'video', url: '', completed: false },
-        ],
-      },
-    ],
+    stages: [],
   },
   motivation: {
     quote: 'ШАД — это инвестиция в себя. Продолжай!',
@@ -108,7 +92,7 @@ const demoState: AppState = {
     why: '',
   },
   stats: {
-    totalTasks: 3,
+    totalTasks: 0,
     solvedTasks: 0,
     totalHours: 0,
     streakDays: 0,
@@ -192,7 +176,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
               : st,
           ),
         },
-        stats: { ...s.stats, totalTasks: s.stats.totalTasks + 1 },
       })),
     removeTask: (stageId, taskId) =>
       setState((s) => ({
@@ -202,7 +185,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
             st.id === stageId ? { ...st, tasks: st.tasks.filter((t) => t.id !== taskId) } : st,
           ),
         },
-        stats: { ...s.stats, totalTasks: Math.max(0, s.stats.totalTasks - 1) },
       })),
     toggleTask: (stageId, taskId, completed) =>
       setState((s) => {
