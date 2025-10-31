@@ -1,8 +1,7 @@
 import dayjs from "dayjs";
-import { lazy, Suspense, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAppState } from "../state/AppContext";
-
-const Chart = lazy(() => import('../components/WeeklyChart'));
+import WeeklyChart from "../components/WeeklyChart";
 
 export default function Diary() {
   const { state, actions } = useAppState();
@@ -59,9 +58,7 @@ export default function Diary() {
 
       <div className="card" style={{ marginTop: 12 }}>
         <div className="label-muted" style={{ marginBottom: 6 }}>Часы за 7 дней</div>
-        <Suspense fallback={<div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--muted)' }}>Загрузка...</div>}>
-          <Chart data={weeklyData} />
-        </Suspense>
+        <WeeklyChart data={weeklyData} />
       </div>
 
       <div style={{ display: "grid", gap: 12, marginTop: 12 }}>

@@ -38,9 +38,10 @@ export default defineConfig({
             ) {
               return "react-vendor";
             }
-            if (id.includes("recharts")) {
-              return "recharts";
-            }
+            // Recharts excluded - causes errors in Telegram WebView
+            // if (id.includes("recharts")) {
+            //   return "recharts";
+            // }
             if (id.includes("@tma.js")) {
               return "tma-sdk";
             }
